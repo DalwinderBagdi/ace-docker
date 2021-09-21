@@ -85,6 +85,7 @@ COPY --from=builder /go/src/github.com/ot4i/ace-docker/chkace* /usr/local/bin/
 
 # Copy in script files
 COPY *.sh /usr/local/bin/
+RUN chmod 755 /usr/local/bin
 
 # Install kubernetes cli
 COPY ubi/install-kubectl.sh /usr/local/bin/
