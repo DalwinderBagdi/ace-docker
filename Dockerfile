@@ -94,13 +94,13 @@ RUN chmod u+x /usr/local/bin/install-kubectl.sh \
 
 # Create a user to run as, create the ace workdir, and chmod script files
 RUN /opt/ibm/ace-11/ace make registry global accept license silently \
+  && useradd -u 1001 -d /home/aceuser -G mqbrkrs,wheel,root aceuser \
   && mkdir -p /var/mqsi \
   && mkdir -p /home/aceuser/initial-config \
   && su - -c '. /opt/ibm/ace-11/server/bin/mqsiprofile && mqsicreateworkdir /home/aceuser/ace-server' \
   && chmod -R 777 /home/aceuser \
   && chmod -R 777 /var/mqsi \
   && su - -c '. /opt/ibm/ace-11/server/bin/mqsiprofile && echo $MQSI_JREPATH && chmod g+w $MQSI_JREPATH/lib/security/cacerts' \
-  && chmod -R ugo+rwx /home/aceuser \
   && chgrp -R 0 /run/runmqserver \
   && chmod -R g=u /run/runmqserver \
   && chgrp -R 0 /run/mqm \
@@ -120,6 +120,9 @@ USER 1001
 COPY sample/mqsc/* /etc/mqm/.
 COPY sample/bars_aceonly /home/aceuser/bars
 COPY sample/bars_mq /home/aceuser/bars
+
+USER root
+RUN chmod -R ugo+rwx /home/aceuser
 
 RUN ace_compile_bars.sh
 
