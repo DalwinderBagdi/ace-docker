@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 
 	"github.com/ot4i/ace-docker/internal/command"
 	"github.com/ot4i/ace-docker/internal/qmgr"
@@ -38,7 +39,12 @@ func main() {
 
 	// Run MQ's liveness check chkmqhealthy, if enabled
 	if qmgr.UseQueueManager() {
-		out, rc, err := command.RunAsUser("mqm", "chkmqhealthy")
+
+    	//out, rc, err := command.RunAsUser("mqm", "chkmqhealthy")
+
+    	//Fix for MQ 9.2
+    	cmd := exec.Command("chkmqhealthy")
+    	out, rc, err := command.RunCmd(cmd)
 		if rc != 0 || err != nil {
 			fmt.Println(out)
 			fmt.Println(err)
