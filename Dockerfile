@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=cp.icr.io/cp/ibm-mqadvanced-server:9.2.0.0-r3
 
-FROM golang:latest as builder
+FROM golang:1.14.2 as builder
 
 WORKDIR /go/src/github.com/ot4i/ace-docker/
 ARG IMAGE_REVISION="Not specified"
@@ -94,32 +94,37 @@ RUN chmod u+x /usr/local/bin/install-kubectl.sh \
 
 # Create a user to run as, create the ace workdir, and chmod script files
 RUN /opt/ibm/ace-11/ace make registry global accept license silently \
-  && useradd -u 1000 -d /home/aceuser -G mqbrkrs,wheel aceuser \
+  && useradd -u 1001 -d /home/aceuser -G mqbrkrs,wheel,root aceuser \
   && mkdir -p /var/mqsi \
   && mkdir -p /home/aceuser/initial-config \
   && su - -c '. /opt/ibm/ace-11/server/bin/mqsiprofile && mqsicreateworkdir /home/aceuser/ace-server' \
   && chmod -R 777 /home/aceuser \
   && chmod -R 777 /var/mqsi \
-  && su - -c '. /opt/ibm/ace-11/server/bin/mqsiprofile && echo $MQSI_JREPATH && chmod g+w $MQSI_JREPATH/lib/security/cacerts'
+  && su - -c '. /opt/ibm/ace-11/server/bin/mqsiprofile && echo $MQSI_JREPATH && chmod g+w $MQSI_JREPATH/lib/security/cacerts' \
+  && chgrp -R 0 /run/runmqserver \
+  && chmod -R g=u /run/runmqserver \
+  && chgrp -R 0 /run/mqm \
+  && chmod -R g=u /run/mqm \
+  && chgrp -R 0 /etc/mqm \
+  && chmod -R g=u /etc/mqm
 
 # Set BASH_ENV to source mqsiprofile when using docker exec bash -c
 ENV BASH_ENV=/usr/local/bin/ace_env.sh
+ENV LOG_FORMAT=basic
+ENV USE_QMGR=true
 
 WORKDIR /home/aceuser
 
-ENV LOG_FORMAT=json
-
-ENV USE_QMGR=true
+USER 1001
 
 COPY sample/mqsc/* /etc/mqm/.
 COPY sample/bars_aceonly /home/aceuser/bars
 COPY sample/bars_mq /home/aceuser/bars
 
-RUN ace_compile_bars.sh
-
 USER root
+RUN chmod -R ugo+rwx /home/aceuser
 
-RUN  chmod -R ugo+rwx /home/aceuser
+RUN ace_compile_bars.sh
 
 # Set entrypoint to run management script
 ENTRYPOINT ["runaceserver"]
